@@ -38,6 +38,16 @@ def return_to_player():
     RT.broadcast_and_wait()
     RT.broadcast_and_wait()
 
+def victory_dance():
+    """Victory dance routine: spins 360 degrees when winning."""
+    brain.screen.clear_screen()
+    display_line(1, "VICTORY DANCE!")
+    display_line(3, "*** WINNER ***")
+    # Spin around using RT turns
+    for _ in range(4):
+        RT.broadcast_and_wait()
+        brain.play_sound(SoundType.TADA)
+
 # --- DECK & HAND SETUP ---
 
 def create_uno_deck():
@@ -82,40 +92,273 @@ def display_line(row, text):
         text = text[:SCREEN_COLS]
     brain.screen.print(text)
 
-def draw_card_frame(card_name):
-    """Renders a card frame on the 5x16 screen around the card name."""
+def display_hand_on_screen(hand):
+    """Lists all stored cards on the screen between turns."""
     brain.screen.clear_screen()
-    display_line(1, "+--------------+")
-    display_line(2, "|  DISCARDING  |")
+    brain.screen.set_fill_color(Color.BLACK)
+    brain.screen.set_pen_color(Color.WHITE)
     
-    truncated_card = card_name[:12].upper()
-    padding = (12 - len(truncated_card)) // 2
-    inner_str = " " * padding + truncated_card
-    inner_str = inner_str + " " * (12 - len(inner_str))
+    display_line(1, "STORED HAND (" + str(len(hand)) + "):")
     
-    display_line(3, "|" + inner_str + "|")
-    display_line(4, "|              |")
-    display_line(5, "+--------------+")
+    # Display up to 3 cards fit on lines 2, 3, and 4
+    for idx in range(min(3, len(hand))):
+        card_text = str(idx + 1) + ":" + hand[idx]
+        display_line(idx + 2, card_text)
+        
+    display_line(5, "[Check] Continue")
+    while wait_for_button_press() != "CHECK":
+        pass
 
-def trigger_uno_alert(played_card):
-    """Displays UNO! on the screen, plays the siren sound effect, and drives."""
+# --- FULL SCREEN CARD GRAPHICS FROM GOOGLE DOC ---
+
+def draw_card_full_screen(card_str, color_code):
+    """Renders pixel-level card graphics based on Google Doc template."""
     brain.screen.clear_screen()
-    display_line(1, "*** UNO! ***")
-    display_line(2, "+--------------+")
-    display_line(3, "| " + played_card[:10] + " |")
-    display_line(4, "+--------------+")
-    display_line(5, "DRIVING...")
+
+    if color_code == 'R':
+        brain.screen.set_fill_color(Color.RED)
+    elif color_code == 'G':
+        brain.screen.set_fill_color(Color.GREEN)
+    elif color_code == 'B':
+        brain.screen.set_fill_color(Color.BLUE)
+    elif color_code == 'Y':
+        brain.screen.set_fill_color(Color.YELLOW)
+    else:
+        brain.screen.set_fill_color(Color.BLACK)
+
+    brain.screen.set_pen_color(Color.WHITE)
+
+    for i in range(5):
+        brain.screen.draw_rectangle(0+i, 0+i, 159-(i*2), 107-(i*2))
+
+    card = card_str[1:] if len(card_str) > 1 else card_str
+
+    if card == "0":
+        for i in range(15):
+            brain.screen.draw_rectangle(20+i, 20+i, 119-(i*2), 67-(i*2))
+    elif card == "8":
+        for i in range(15):
+            brain.screen.draw_rectangle(20+i, 20+i, 119-(i*2), 67-(i*2))
+        for i in range(15):
+            brain.screen.draw_line(72+i, 20, 72+i, 85)
+    elif card == "1":
+        for i in range(15):
+            brain.screen.draw_line(20, 47+i, 139, 47+i)
+    elif card == "3":
+        for i in range(15):
+            brain.screen.draw_line(20, 20+i, 139, 20+i)
+            brain.screen.draw_line(20+i, 20, 20+i, 87)
+            brain.screen.draw_line(72+i, 20, 72+i, 87)
+            brain.screen.draw_line(125+i, 20, 125+i, 87)
+    elif card == "2":
+        for i in range(15):
+            brain.screen.draw_line(20+i, 20, 20+i, 87)
+            brain.screen.draw_line(20, 20+i, 72, 20+i)
+            brain.screen.draw_line(72+i, 20, 72+i, 87)
+            brain.screen.draw_line(72, 73+i, 139, 73+i)
+            brain.screen.draw_line(125+i, 20, 125+i, 87)
+        for i in range(3):
+            brain.screen.draw_line(145+i, 20, 145+i, 87)
+    elif card == "5":
+        for i in range(15):
+            brain.screen.draw_line(20+i, 20, 20+i, 87)
+            brain.screen.draw_line(20, 73+i, 72, 73+i)
+            brain.screen.draw_line(72+i, 20, 72+i, 87)
+            brain.screen.draw_line(72, 20+i, 139, 20+i)
+            brain.screen.draw_line(125+i, 20, 125+i, 87)
+        for i in range(3):
+            brain.screen.draw_line(145+i, 20, 145+i, 87)
+    elif card == "6":
+        for i in range(15):
+            brain.screen.draw_line(20+i, 20, 20+i, 87)
+            brain.screen.draw_line(20, 73+i, 72, 73+i)
+            brain.screen.draw_line(72+i, 20, 72+i, 87)
+            brain.screen.draw_line(72, 20+i, 139, 20+i)
+            brain.screen.draw_line(125+i, 20, 125+i, 87)
+            brain.screen.draw_line(72, 73+i, 139, 73+i)
+        for i in range(3):
+            brain.screen.draw_line(145+i, 20, 145+i, 87)
+    elif card == "9":
+        for i in range(15):
+            brain.screen.draw_line(20+i, 20, 20+i, 87)
+            brain.screen.draw_line(20, 20+i, 72, 20+i)
+            brain.screen.draw_line(20, 73+i, 72, 73+i)
+            brain.screen.draw_line(72+i, 20, 72+i, 87)
+            brain.screen.draw_line(72, 20+i, 139, 20+i)
+            brain.screen.draw_line(125+i, 20, 125+i, 87)
+        for i in range(3):
+            brain.screen.draw_line(145+i, 20, 145+i, 87)
+    elif card == "4" and "D" not in card_str:
+        for i in range(15):
+            brain.screen.draw_line(20, 20+i, 72, 20+i)
+            brain.screen.draw_line(20, 73+i, 72, 73+i)
+            brain.screen.draw_line(72+i, 20, 72+i, 87)
+            brain.screen.draw_line(72, 20+i, 139, 20+i)
+    elif card == "7":
+        for i in range(15):
+            brain.screen.draw_line(20, 20+i, 139, 20+i)
+            brain.screen.draw_line(20+i, 20, 20+i, 87)
+    elif card == "Rv":
+        for i in range(15):
+            brain.screen.draw_line(62+i, 30, 62+i, 87)
+            brain.screen.draw_line(69, 20, 52+i, 40)
+            brain.screen.draw_line(69, 20, 82-i, 40)
+            brain.screen.draw_line(82+i, 20, 82+i, 77)
+            brain.screen.draw_line(89, 87, 74+i, 67)
+            brain.screen.draw_line(89, 87, 104-i, 67)
+    elif card == "S":
+        for i in range(15):
+            brain.screen.draw_rectangle(40+i, 20+i, 82-(i*2), 67-(i*2))
+        for i in range(15):
+            brain.screen.draw_line(52+i, 20, 92+i, 80)
+    elif card == "D2":
+        brain.screen.set_fill_color(Color.WHITE)
+        for i in range(40):
+            brain.screen.draw_circle(60+i, 42+int(i/2), 30)
+        if color_code == 'R': brain.screen.set_fill_color(Color.RED)
+        elif color_code == 'G': brain.screen.set_fill_color(Color.GREEN)
+        elif color_code == 'B': brain.screen.set_fill_color(Color.BLUE)
+        elif color_code == 'Y': brain.screen.set_fill_color(Color.YELLOW)
+        brain.screen.draw_rectangle(47, 32, 40, 25)
+        brain.screen.draw_rectangle(73, 52, 40, 25)
+        for i in range(5):
+            brain.screen.draw_line(18+i, 85, 18+i, 95)
+            brain.screen.draw_line(14, 88+i, 26, 88+i)
+            brain.screen.draw_line(10+i, 66, 10+i, 79)
+            brain.screen.draw_line(10, 66+i, 20, 66+i)
+            brain.screen.draw_line(18+i, 66, 18+i, 79)
+            brain.screen.draw_line(20, 75+i, 30, 75+i)
+            brain.screen.draw_line(26+i, 66, 26+i, 79)
+            brain.screen.draw_line(159-18-i, 107-85, 159-18-i, 107-95)
+            brain.screen.draw_line(159-14, 107-88-i, 159-26, 107-88-i)
+            brain.screen.draw_line(159-10-i, 107-66, 159-10-i, 107-79)
+            brain.screen.draw_line(159-10, 107-66-i, 159-20, 107-66-i)
+            brain.screen.draw_line(159-18-i, 107-66, 159-18-i, 107-79)
+            brain.screen.draw_line(159-20, 107-75-i, 159-30, 107-75-i)
+            brain.screen.draw_line(159-26-i, 107-66, 159-26-i, 107-79)
+    elif card_str == "W":
+        brain.screen.set_fill_color(Color.BLUE)
+        brain.screen.draw_rectangle(50, 20, 30, 32)
+        brain.screen.set_fill_color(Color.RED)
+        brain.screen.draw_rectangle(50, 52, 30, 32)
+        brain.screen.set_fill_color(Color.GREEN)
+        brain.screen.draw_rectangle(80, 20, 30, 32)
+        brain.screen.set_fill_color(Color.YELLOW)
+        brain.screen.draw_rectangle(80, 52, 30, 32)
+        brain.screen.set_fill_color(Color.TRANSPARENT)
+        brain.screen.set_pen_width(3)
+        for i in range(15):
+            brain.screen.draw_circle(80, 52, int(30-(i/5)))
+        brain.screen.set_pen_color(Color.BLACK)
+        for i in range(65):
+            brain.screen.draw_circle(80, 52, int(31+(i/5)))
+        brain.screen.set_pen_width(1)
+    elif card_str == "D4":
+        brain.screen.set_fill_color(Color.YELLOW)
+        brain.screen.draw_rectangle(78, 42, 40, 25)
+        brain.screen.set_fill_color(Color.GREEN)
+        brain.screen.draw_rectangle(60, 28, 40, 25)
+        brain.screen.set_fill_color(Color.BLUE)
+        brain.screen.draw_rectangle(42, 42, 40, 25)
+        brain.screen.set_fill_color(Color.RED)
+        brain.screen.draw_rectangle(60, 56, 40, 25)
+        for i in range(5):
+            brain.screen.draw_line(18+i, 85, 18+i, 95)
+            brain.screen.draw_line(14, 88+i, 26, 88+i)
+            brain.screen.draw_line(10, 75+i, 20, 75+i)
+            brain.screen.draw_line(16+i, 75, 16+i, 66)
+            brain.screen.draw_line(10, 66+i, 30, 66+i)
+            brain.screen.draw_line(159-18-i, 107-85, 159-18-i, 107-95)
+            brain.screen.draw_line(159-14, 107-88-i, 159-26, 107-88-i)
+            brain.screen.draw_line(159-10, 107-75-i, 159-20, 107-75-i)
+            brain.screen.draw_line(159-16-i, 107-75, 159-16-i, 107-66)
+            brain.screen.draw_line(159-10, 107-66-i, 159-30, 107-66-i)
+    else:
+        # Default / Back of Card Graphic (Red oval with UNO logo)
+        brain.screen.set_fill_color(Color.RED)
+        brain.screen.set_pen_color(Color.RED)
+        for i in range(40):
+            brain.screen.draw_circle(60+i, 42+int(i/2), 30)
+        brain.screen.set_pen_color(Color.YELLOW)
+        for i in range(5):
+            brain.screen.draw_line(75, 50+i-5, 85, 50+i-5)
+            brain.screen.draw_line(75, 50+i+5, 85, 50+i+5)
+            brain.screen.draw_line(75, 50+i+5, 85, 50+i-5)
+            brain.screen.draw_line(75, 50+i-15, 85, 50+i-15)
+            brain.screen.draw_line(75+int(i/2), 50-15, 75+int(i/2), 50-25)
+            brain.screen.draw_line(83+int(i/2), 50-15, 83+int(i/2), 50-25)
+            brain.screen.draw_line(75, 50+i-25, 85, 50+i-25)
+            brain.screen.draw_line(75, 50+i+15, 85, 50+i+15)
+            brain.screen.draw_line(83+int(i/2), 50+15, 83+int(i/2), 50+25)
+            brain.screen.draw_line(75, 50+i+25, 85, 50+i+25)
+        brain.screen.set_fill_color(Color.TRANSPARENT)
+
+def convert_and_render_card(card_name):
+    """Converts game card names to card frame parameters and resets text colors."""
+    if card_name == "BACK":
+        draw_card_full_screen("BACK", "R")
+    elif "Wild Draw 4" in card_name:
+        draw_card_full_screen("D4", "W")
+    elif "Wild" in card_name:
+        draw_card_full_screen("W", "W")
+    elif " " in card_name:
+        color, val = card_name.split(" ", 1)
+        color_code = color[0].upper()
+        if val == "Draw 2":
+            card_str = color_code + "D2"
+        elif val == "Skip":
+            card_str = color_code + "S"
+        elif val == "Reverse":
+            card_str = color_code + "Rv"
+        else:
+            card_str = color_code + val
+        draw_card_full_screen(card_str, color_code)
+    else:
+        draw_card_full_screen("BACK", "R")
+
+    # Reset screen colors back to standard white text on black background
+    brain.screen.set_fill_color(Color.BLACK)
+    brain.screen.set_pen_color(Color.WHITE)
+
+def process_card_discard(played_card, remaining_hand_count):
+    """Handles discarding: renders card graphic first, drives, and triggers sound alerts."""
+    # Step 1: Render the card graphic FIRST
+    convert_and_render_card(played_card)
     
-    try:
-        brain.play_sound("siren")
-    except:
+    # Trigger audio ON DISCARD:
+    if remaining_hand_count == 1:
+        # Down to 1 card (UNO Alert sound)
         try:
-            brain.play_sound("alarm")
+            brain.play_sound(SoundType.SIREN)
         except:
-            pass
+            try:
+                brain.play_sound("siren")
+            except:
+                pass
+    elif remaining_hand_count == 0:
+        # Discarding final winning card (Victory sound)
+        try:
+            brain.play_sound("tada")
+        except:
+            try:
+                brain.play_sound("fanfare")
+            except:
+                try:
+                    brain.play_sound("siren")
+                except:
+                    pass
 
+    # Step 2: Drive to center pile and return
     FWD.broadcast_and_wait()
     FWD.broadcast_and_wait()
+    return_to_player()
+
+    # Step 3: Announce UNO after returning if 1 card remains
+    if remaining_hand_count == 1:
+        brain.screen.clear_screen()
+        display_line(1, "*** UNO! ***")
+        display_line(3, "1 CARD LEFT!")
+        wait(1, SECONDS)
 
 def wait_for_button_press():
     """Waits for Left, Right, or Check button input."""
@@ -160,16 +403,13 @@ def check_attack_phase(hand, deck):
             played_card = hand.pop(draw2_indices[0])
             print("\nAttack countered! Robot driving to discard: " + played_card)
             
-            # Check UNO Condition (1 card remaining)
-            if len(hand) == 1:
-                trigger_uno_alert(played_card)
-            else:
-                draw_card_frame(played_card)
-                FWD.broadcast_and_wait()
-                FWD.broadcast_and_wait()
-
-            return_to_player()
+            process_card_discard(played_card, len(hand))
             
+            # If counter attack emptied the hand, jump straight to victory dance
+            if len(hand) == 0:
+                victory_dance()
+                return played_card
+
             brain.screen.clear_screen()
             display_line(1, "COUNTER ATTACK!")
             display_line(2, "Robot played:")
@@ -181,7 +421,9 @@ def check_attack_phase(hand, deck):
         else:
             print("\nRobot has no Draw 2! Driving to center to draw 2 penalty cards...")
             
-            move_to_center()
+            convert_and_render_card("BACK")
+            FWD.broadcast_and_wait()
+            FWD.broadcast_and_wait()
             
             drawn_cards = []
             for _ in range(2):
@@ -194,11 +436,7 @@ def check_attack_phase(hand, deck):
 
             brain.screen.clear_screen()
             display_line(1, "NO DRAW 2 CARD!")
-            display_line(2, "Took 2 cards:")
-            if len(drawn_cards) > 0:
-                display_line(3, drawn_cards[0][:16])
-            if len(drawn_cards) > 1:
-                display_line(4, drawn_cards[1][:16])
+            display_line(2, "Took 2 cards!")
             display_line(5, "[Check] Continue")
             while wait_for_button_press() != "CHECK":
                 pass
@@ -286,7 +524,9 @@ def player_turn_menu(hand, deck, top_discard):
         while wait_for_button_press() != "CHECK":
             pass
             
-        move_to_center()
+        convert_and_render_card("BACK")
+        FWD.broadcast_and_wait()
+        FWD.broadcast_and_wait()
         
         if len(deck) > 0:
             drawn_card = deck.pop(0)
@@ -296,8 +536,8 @@ def player_turn_menu(hand, deck, top_discard):
         return_to_player()
             
         brain.screen.clear_screen()
-        display_line(1, "DRAWN CARD:")
-        display_line(2, drawn_card)
+        display_line(1, "CARD DRAWN!")
+        display_line(2, "Added to Hand")
         display_line(5, "[Check] End Turn")
         while wait_for_button_press() != "CHECK":
             pass
@@ -326,15 +566,13 @@ def player_turn_menu(hand, deck, top_discard):
                 played_card = hand.pop(cursor_idx)
                 print("Robot playing card: " + played_card)
                 
-                # Check UNO Condition (1 card remaining)
-                if len(hand) == 1:
-                    trigger_uno_alert(played_card)
-                else:
-                    draw_card_frame(played_card)
-                    FWD.broadcast_and_wait()
-                    FWD.broadcast_and_wait()
-
-                return_to_player()
+                # Discard sequence: graphic first -> drive & return
+                process_card_discard(played_card, len(hand))
+                
+                # If playing the final card, execute victory dance immediately
+                if len(hand) == 0:
+                    victory_dance()
+                    return played_card
                 
                 brain.screen.clear_screen()
                 display_line(1, "PLAYED CARD:")
@@ -358,7 +596,7 @@ def player_turn_menu(hand, deck, top_discard):
 def run_multiplayer_game():
     uno_deck = create_uno_deck()
     custom_shuffle(uno_deck)
-    player_hand = deal_hand(uno_deck, 2)
+    player_hand = deal_hand(uno_deck, 7)
 
     game_over = False
     turn_count = 1
@@ -368,6 +606,9 @@ def run_multiplayer_game():
         print("\n====================")
         print("ROUND " + str(turn_count))
         print_hand_to_terminal(player_hand)
+
+        # Display all stored cards on screen at start of round
+        display_hand_on_screen(player_hand)
 
         # 1. Ask "Do you have an attack?"
         counter_card = check_attack_phase(player_hand, uno_deck)
@@ -381,17 +622,11 @@ def run_multiplayer_game():
             top_discard = player_turn_menu(player_hand, uno_deck, top_discard)
 
         if len(player_hand) == 0:
-            try:
-                brain.play_sound(SoundType.SIREN)
-
-            except:
-                pass
-            brain.screen.clear_screen()
-            display_line(1, "ROBOT HAND EMPTY")
-            display_line(3, "YOU WIN!")
             print("\n*** GAME OVER: Robot player has cleared all stored cards! ***")
             game_over = True
         else:
+            # Display all stored cards on screen between turns
+            display_hand_on_screen(player_hand)
             turn_count += 1
 
 # Run game assistant
